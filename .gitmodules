@@ -2,7 +2,8 @@
 	path = RayroomProject
 	url = https://github.com/M4y4Ti4/RayRoom
 	branch = temp
-[submodule "DGBABY"]
-	path = DGBABY
+
+[submodule "DGsim"]
+	path = DGsim
 	url = https://github.com/M4y4Ti4/edg-acoustics.git
 	branch = main
