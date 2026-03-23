@@ -1,2 +1,2 @@
-results_on_the_run.mat 
-room_layout.png 
+*.mat  
+*.png 

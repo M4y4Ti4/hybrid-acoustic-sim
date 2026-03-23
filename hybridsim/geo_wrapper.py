@@ -66,8 +66,8 @@ def run_geometric(rec_pos, source_pos, room_dim, n_rays, max_hops, rir_duration,
 
     hist = tracer.last_histogram[receiver.name]
     
-    HYBRID_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    hrtf_path = os.path.join(HYBRID_DIR, "HRTF", "KEMAR_GRAS_EarSim_LargeEars_FreeFieldCompMinPhase_44kHz.sofa")
+    MASTERS_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    hrtf_path = os.path.join(MASTERS_DIR, "HRTF", "KEMAR_GRAS_EarSim_LargeEars_FreeFieldCompMinPhase_44kHz.sofa")
     hrtf = load_hrtf(hrtf_path, fs_target=44100)
 
     brir_l, brir_r, brir_bands_l, brir_bands_r = render_brir(

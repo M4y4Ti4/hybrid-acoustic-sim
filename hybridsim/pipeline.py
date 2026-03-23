@@ -14,9 +14,9 @@ sys.path.append(os.path.join(HYBRID_DIR, "DGsim", "edg-acoustics"))
 sys.path.append(os.path.join(HYBRID_DIR, "RayroomProject", "rayroom"))
 
 
-from rayroom.geo_wrapper import run_geometric 
+from geo_wrapper import run_geometric 
 
-from edg_acoustics.wave_wrapper import run_wave 
+from wave_wrapper import run_wave 
 
 def main():
 
