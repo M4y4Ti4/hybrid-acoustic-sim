@@ -23,7 +23,7 @@ test calibration with loading previously obtained results for the shoebox !
 
 wave_data = np.load(r"C:\Masters\DGsim\edg-acoustics\examples\shoebox\output\corrected_shoebox_lc1_200Hz_2slc__10.npz")
 
-geo_data = np.load(r"C:\Masters\RayroomProject\rayroom\examples\initial_testing\rir_shoebox_cal.npz")
+geo_data = np.load(r"C:\Masters\RayroomProject\rayroom\examples\initial_testing\rir_shoebox_cal_newscale.npz")
 
 
 wave_data_path = r"C:\Masters\DGsim\edg-acoustics\examples\shoebox\output\corrected_shoebox_lc1_200Hz_2slc__10.npz"
@@ -102,27 +102,29 @@ def calculate_calibration(gd, td, tr, geo_rir, wave_rir, t_wave, t_geo):
     """
     calculating the calibration coefficient
     """
-    w1 = td - 0.5*(tr - td)
-    w2 = td + 0.5*(tr - td)
-    
+    w1 = td - 0.005
+    w2 = 0.06
     max_wave = find_max(wave_rir, t_wave, w1, w2)
+    print(max_wave)
     max_geo = find_max(geo_rir, t_geo, w1, w2)
+    print(max_geo)
 
-    cal_coef = max_geo/max_wave
+    cal_coef = max_wave/max_geo
 
     return cal_coef
 
-rir_g_scaled = scale_Gir(gd = amp_direct, td=td, rir_total = rir_total)
-rir_g_filtered = low_pass_filter(rir_g_scaled, 200, fs = 44100)
+rir_g_filtered = low_pass_filter(rir_total, 200, fs = 44100)
 rir_w_filtered = low_pass_filter(IR, 200, fs = 44100)
 
 #plot_rir(rir_total, fs = 44100)
-#plot_rir(rir_g_scaled, fs = 44100)
-#plot_rir(rir_g_filtered, fs = 44100)
-#plot_rir(rir_w_filtered, fs = 44100)
 
-plot_transfer_function(rir_g_filtered, fs = 44100)
+
 
 eta = calculate_calibration(gd=amp_direct, td=td, tr = tr, geo_rir = rir_g_filtered, wave_rir = rir_w_filtered, t_wave = t_wave, t_geo = t_geo)
+print(eta)
 
+rir_ga_calibrated = rir_g_filtered * eta
 
+plot_rir(rir_w_filtered, fs = 44100)
+
+plot_rir(rir_ga_calibrated, fs = 44100)
