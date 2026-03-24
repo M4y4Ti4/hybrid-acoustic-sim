@@ -35,10 +35,6 @@ def run_geometric(rec_pos, source_pos, room_dim, n_rays, max_hops, rir_duration,
     receiver = Receiver("persona", rec_pos, radius=0.09)
     room.add_receiver(receiver)
 
-    # Plot Room BEFORE Simulation (Check geometry)
-    print("Saving room visualization...")
-    room.plot("room_layout.png", show=False)
-
     # 3. Run Simulation
     tracer = HybridRenderer(room)
 
