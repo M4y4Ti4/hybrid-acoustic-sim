@@ -6,10 +6,10 @@ from rayroom.analytics.acoustics import schroeder_integration, calculate_rt60, c
 from rayroom.core.constants import FREQ_BANDS
 from rayroom.core.data_anal import plot_rir, plot_transfer_function, overlay_DG
 
-#wave_data = np.load(r"C:\Masters\Hybrid\DGsim\examples\shoebox\output\TR_corrected_lc1_200Hz_2slc__06.npz")
-wave_data = np.load(r"C:\Masters\Hybrid\DGsim\examples\shoebox\output\TR_corrected_lc1_200Hz_2slc__25.npz")
 
-geo_data = np.load(r"C:\Masters\Hybrid\RayroomProject\examples\initial_testing\rir_shoebox_cal_newscale.npz")
+geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\rir_shoebox.npz")
+wave_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\processed_data.npz", allow_pickle=True)
+
 
 wave_rir = wave_data["IR_resampled"]
 wave_times = wave_data["t_resampled"]
@@ -30,7 +30,6 @@ for b in range(len(FREQ_BANDS)):
 print(RT60_bands)
 
 
-
 #calculating RT60 for wave and geo model
 sch_db_wave = schroeder_integration(wave_rir)
 sch_db_geo = schroeder_integration(rir_total)
@@ -42,5 +41,26 @@ RT60_geo = calculate_rt60(sch_db_geo, fs = 44100)
 EDT_wave = calculate_edt(sch_db_wave, fs = 44100)
 EDT_geo = calculate_edt(sch_db_geo, fs = 44100)
 
-print(RT60_wave)
+print(RT60_geo, RT60_wave)
 print(EDT_geo,EDT_wave)
+
+
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.io import wavfile
+from scipy.signal import butter, sosfiltfilt
+
+fs, rir = wavfile.read(r"C:\ITASoftware\Raven\RavenOutput\myShoeboxRoom5x4x320260421T161145\ImpulseResponses\2026-04-21\16.11.45\RIR_Combined\RIR_Combined_PrimarySource0_Receiver0_1_1.wav")
+
+if rir.dtype != np.float32 and rir.dtype != np.float64:
+    rir = rir.astype(np.float64) / np.iinfo(rir.dtype).max
+
+t = np.arange(len(rir)) / fs
+plt.plot(t, rir, linewidth=0.5)
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.title('Raven RIR_RT')
+plt.grid(True)
+plt.show()
+"""

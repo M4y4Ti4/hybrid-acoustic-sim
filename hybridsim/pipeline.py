@@ -14,9 +14,11 @@ sys.path.append(os.path.join(HYBRID_DIR, "DGsim", "edg-acoustics"))
 sys.path.append(os.path.join(HYBRID_DIR, "RayroomProject", "rayroom"))
 
 
-from geo_wrapper import run_geometric 
+from hybridsim.shoebox.geo_wrapper import run_geometric 
 
-from wave_wrapper import run_wave 
+from hybridsim.shoebox.wave_wrapper import run_wave 
+
+from calibration import create_hybrid
 
 def main():
 
@@ -38,8 +40,9 @@ def main():
 
     wave_res = run_wave(mesh_input=mesh_input, max_freq=max_freq, recx=recx, recy=recy, recz=recz, source_pos=source_pos, rir_duration=rir_duration)
 
+    hybrid_res = create_hybrid(geo_res = geo_res, wave_res = wave_res, crossover_hz = 100, fs = 44100)
 
-    return wave_res, geo_res
+    return wave_res, geo_res, hybrid_res
 
 if __name__ == "__main__":
     main()
