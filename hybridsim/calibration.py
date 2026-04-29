@@ -228,6 +228,8 @@ def create_hybrid(geo_res, wave_res, crossover_hz = 255, fs = 44100):
     """
     #unpack geometric results
     rir_total = geo_res["rir_total"]
+    brir_l = geo_res["brir_l"]
+    brir_r = geo_res["brir_r"]
     td = geo_res["td"]
     tr = geo_res["tr"]
     amp_direct = geo_res["gd"]
@@ -239,32 +241,43 @@ def create_hybrid(geo_res, wave_res, crossover_hz = 255, fs = 44100):
     IR[t_wave < td] = 0
 
     amp_direct_scalar = np.mean(np.abs(np.array(amp_direct)))
-    rir_g_scaled = scale_Gir(gd = amp_direct_scalar, td = td, rir_total=rir_total)
+    rir_left_scaled = scale_Gir(gd = amp_direct_scalar, td = td, rir_total=brir_l)
+    rir_right_scaled = scale_Gir(gd = amp_direct_scalar, td = td, rir_total=brir_r)
 
-    geo_lp = low_pass_filter(rir_g_scaled, crossover_hz, fs=fs)
+    geo_left_lp = low_pass_filter(rir_left_scaled, crossover_hz, fs=fs)
+    geo_right_lp = low_pass_filter(rir_right_scaled, crossover_hz, fs = fs)
     wave_lp = low_pass_filter(IR, crossover_hz, fs = fs)
 
-    eta = integrate_energy(geo_lp, wave_lp, t_wave, t_geo, t_start=td, t_end=td + 0.03)
+    eta_left = integrate_energy(geo_left_lp, wave_lp, t_wave, t_geo, t_start=td, t_end=td + 0.03)
+    eta_right = integrate_energy(geo_right_lp, wave_lp, t_wave, t_geo, t_start=td, t_end = td + 0.03)
+    wave_calibrated_left = IR * eta_left
+    wave_calibrated_right = IR * eta_right
 
-    wave_calibrated = IR * eta
+    lowband_left = low_pass_filter(wave_calibrated_left, crossover_hz, fs=fs, order=4)
+    highband_left = high_pass_filter(rir_left_scaled, fs=fs, min_freq=crossover_hz)
 
-    lowband = low_pass_filter(wave_calibrated, crossover_hz, fs=fs, order=4)
-    highband = high_pass_filter(rir_g_scaled, fs=fs, min_freq=crossover_hz)
+    lowband_right = low_pass_filter(wave_calibrated_right, crossover_hz, fs=fs, order=4)
+    highband_right = high_pass_filter(rir_right_scaled, fs=fs, min_freq=crossover_hz)
 
-    if len(lowband) != len(highband):
-        new_len = max(len(lowband), len(highband))
-        print(new_len)
-        lowband = np.pad(lowband, (0, new_len - len(lowband)))
-        highband = np.pad(highband, (0, new_len - len(highband)))
+    if len(lowband_left) != len(highband_left):
+        new_len = max(len(lowband_left), len(highband_left))
+        lowband_left = np.pad(lowband_left, (0, new_len - len(lowband_left)))
+        highband_left = np.pad(highband_left, (0, new_len - len(highband_left)))
+        lowband_right = np.pad(lowband_right, (0, new_len - len(lowband_right)))
+        highband_right = np.pad(highband_right, (0, new_len - len(highband_right)))       
 
 
-    hybrid_rir = lowband + highband
+    hybrid_rir_left = lowband_left + highband_left
+    hybrid_rir_right = lowband_right + highband_right
 
     return {
-        "hybrid_rir": hybrid_rir,
+        "hybrid_rir_left": hybrid_rir_left,
+        "hybrid_rir_right": hybrid_rir_right,
         "wave_calibrated": wave_calibrated,
-        "rir_g_scaled": rir_g_scaled,
-        "eta": eta,
+        "rir_g_scaled_left": rir_left_scaled,
+        "rir_g_scaled_right": rir_right_scaled,
+        "eta_left": eta_left,
+        "eta_right": eta_right,
         "crossover_hz": crossover_hz,
         "fs": fs,
     }
@@ -350,6 +363,8 @@ if len(lowband) != len(highband):
 
 
 hybrid_rir = lowband + highband
+
+np.savez(r"C:\Masters\Hybrid\hybridsim\results\hybrid_rir.npz", hybrid_rir)
 
 plot_tf({"low band": lowband, "highband": highband, "hybrid": hybrid_rir}, title="crossover and hybrid")
 
