@@ -5,7 +5,7 @@ import numpy as np
 from rayroom.analytics.acoustics import schroeder_integration, calculate_rt60, calculate_edt, _calculate_decay_time, calculate_drr
 from rayroom.core.constants import FREQ_BANDS
 from rayroom.core.data_anal import plot_rir, plot_transfer_function, overlay_DG
-
+"""
 
 geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\rir_shoebox.npz")
 wave_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\processed_data.npz", allow_pickle=True)
@@ -49,9 +49,14 @@ print(EDT_geo,EDT_wave)
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
-from scipy.signal import butter, sosfiltfilt
+from scipy.signal import butter, sosfilt
 
-fs, rir = wavfile.read(r"C:\ITASoftware\Raven\RavenOutput\myShoeboxRoom5x4x320260421T161145\ImpulseResponses\2026-04-21\16.11.45\RIR_Combined\RIR_Combined_PrimarySource0_Receiver0_1_1.wav")
+fs, rir = wavfile.read(r"C:\ITASoftware\Raven\RavenOutput\untitled20260428T111023\ImpulseResponses\2026-04-28\11.10.23\RIR_IS\RIR_IS_PrimarySource0_Receiver0_1_1.wav")
+#geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\rir_shoebox.npz")
+hybrid_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\hybrid_rir.npz")
+hybrid_rir = hybrid_data['arr_0'].astype(np.float64) 
+t_geo = np.linspace(0, 2.0, 44100)
+
 
 if rir.dtype != np.float32 and rir.dtype != np.float64:
     rir = rir.astype(np.float64) / np.iinfo(rir.dtype).max
@@ -63,4 +68,26 @@ plt.ylabel('Amplitude')
 plt.title('Raven RIR_RT')
 plt.grid(True)
 plt.show()
-"""
+
+def octave_filter(signal, fs, fc, order=4):
+    f_low = fc / np.sqrt(2)
+    f_high = fc * np.sqrt(2)
+    sos = butter(order, [f_low, f_high], btype='bandpass', fs=fs, output='sos')
+    return sosfilt(sos, signal)
+
+print("RAVEN sim")
+for band in FREQ_BANDS: 
+    band_rir = octave_filter(rir, fs = 44100, fc = band)
+    sch_band = schroeder_integration(band_rir)
+    RT_60_band = calculate_rt60(sch_band, fs = 44100)
+    print(f"Freq (Hz): {band} RT60: {RT_60_band}")
+
+print("hybrid")
+for band in FREQ_BANDS: 
+    band_rir = octave_filter(hybrid_rir, fs = 44100, fc = band)
+    sch_band = schroeder_integration(band_rir)
+    RT_60_band = calculate_rt60(sch_band, fs = 44100)
+    print(f"Freq (Hz): {band} RT60: {RT_60_band}")
+
+print(f"RAVEN RIR length:  {len(rir)/44100:.3f} s")
+print(f"Hybrid RIR length: {len(hybrid_rir)/44100:.3f} s")
