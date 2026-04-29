@@ -40,9 +40,9 @@ def main():
 
     wave_res = run_wave(mesh_input=mesh_input, max_freq=max_freq, recx=recx, recy=recy, recz=recz, source_pos=source_pos, rir_duration=rir_duration)
 
-    hybrid_res = create_hybrid(geo_res = geo_res, wave_res = wave_res, crossover_hz = 100, fs = 44100)
+    hybrid_res_left, hybrid_res_right = create_hybrid(geo_res = geo_res, wave_res = wave_res, crossover_hz = 100, fs = 44100)
 
-    return wave_res, geo_res, hybrid_res
+    return wave_res, geo_res, hybrid_res_left, hybrid_res_right
 
 if __name__ == "__main__":
     main()
