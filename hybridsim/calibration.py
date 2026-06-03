@@ -411,6 +411,82 @@ def compute_metrics(label, rir, td, fs=44100):
 def main():
     geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos1\rir_shoebox_pos1_200000_withphase_ismspec.npz")
     wave_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos1\shoebox_lc05_freq300_2s_avabs_newcarpet_pos1.mat.npz")
+
+    brir_left = geo_data["brir_l"]
+    brir_right = geo_data["brir_r"]
+    rir_total = geo_data["rir_total"]
+
+    amp_direct = geo_data["amp_direct"]
+    td = geo_data["t_d"]
+    tr = geo_data["t_r"]
+
+    wave_rir = wave_data["IR_resampled"]
+    t_wave = wave_data["t_resampled"]
+
+    t_geo = np.linspace(0, 2.0, len(rir_total))
+
+    plot_rir(brir_left, fs = 44100)
+    plot_rir(brir_right, fs = 44100)
+
+    scaled_geo_left = scale_Gir(gd = np.mean(np.abs(np.array(amp_direct))), td = td, rir_total = brir_left)
+    scaled_geo_right = scale_Gir(gd = np.mean(np.abs(np.array(amp_direct))), td = td, rir_total = brir_right)
+
+
+    low_pass_geo_left = low_pass_filter(scaled_geo_left, cutoff = 300, fs = 44100)
+    low_pass_geo_right = low_pass_filter(scaled_geo_right, cutoff = 300, fs = 44100)
+    low_pass_wave = low_pass_filter(wave_rir, cutoff = 300, fs = 44100)
+
+    eta_left = integrate_energy(ir_geo = low_pass_geo_left, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = 0.02)
+    eta_right = integrate_energy(ir_geo = low_pass_geo_right, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = 0.02)
+    eta_av = (eta_left + eta_right) / 2
+    print(eta_left, eta_right, eta_av)
+    #eta1 = calculate_cal_coef_freqdomain(geo_rir = low_pass_geo, wave_rir = low_pass_wave, f_low = 200, f_high = 280)
+    #eta2 = integrate_energy(ir_geo = low_pass_geo, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = 0.03)
+    #print(f"eta2: {eta2}")
+    wave_calibrated = wave_rir * eta_av
+
+    plot_tf({"wave": wave_calibrated, "geo": scaled_geo_left}, title="raw transfer functions, left ear")
+    plot_tf({"wave": wave_calibrated, "geo": scaled_geo_right}, title="raw transfer functions, right ear")
+
+    #plot_tf({"Geo (raw)": rir_total, "Wave (raw)": wave_rir},
+            #title="Step 1 — Raw transfer functions")
+
+    #metrics_geo_raw  = compute_metrics("Geo (raw)",  rir_total, td)
+    #metrics_wave_raw = compute_metrics("Wave (raw)", wave_rir,  td)
+
+    lowband_left, highband_left = apply_crossover(geo_rir = scaled_geo_left, wave_rir = wave_calibrated, crossover_hz = 250)
+    lowband_right, highband_right = apply_crossover(geo_rir = scaled_geo_right, wave_rir = wave_calibrated, crossover_hz = 250)
+
+
+    if len(lowband_left) != len(highband_left):
+        new_len = max(len(lowband_left), len(highband_left))
+        print(new_len)
+        lowband_left = np.pad(lowband_left, (0, new_len - len(lowband_left)))
+        highband_left = np.pad(highband_left, (0, new_len - len(highband_left)))
+
+    if len(lowband_right) != len(highband_right):
+        new_len = max(len(lowband_right), len(highband_right))
+        print(new_len)
+        lowband_right = np.pad(lowband_right, (0, new_len - len(lowband_right)))
+        highband_right = np.pad(highband_right, (0, new_len - len(highband_right)))
+
+
+    hybrid_rir_left = lowband_left + highband_left
+    hybrid_rir_right = lowband_right + highband_right
+
+
+    np.savez(r"C:\Masters\Hybrid\hybridsim\results\hybrid_rir.npz", hybrid_rir_left = hybrid_rir_left, hybrid_rir_right = hybrid_rir_right)
+
+    plot_tf({"low band": lowband_left, "highband": highband_left, "hybrid": hybrid_rir_left}, title="crossover and hybrid,left ear")
+    plot_tf({"low band": lowband_right, "highband": highband_right, "hybrid": hybrid_rir_right}, title="crossover and hybrid,right ear")
+
+
+    plot_rir(hybrid_rir_left, fs = 44100)
+    plot_rir(hybrid_rir_right, fs = 44100)
+"""
+def main():
+    geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos1\rir_shoebox_pos1_200000_withphase_ismspec.npz")
+    wave_data = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos1\shoebox_lc05_freq300_2s_avabs_newcarpet_pos1.mat.npz")
     rir_total = geo_data["rir_total"]
     brir_left = geo_data["brir_l"]
     brir_right = geo_data["brir_r"]
@@ -478,7 +554,7 @@ def main():
 
 
 
-    """
+
     plot_rir(rir_total, fs = 44100)
 
     plt.plot(t_wave, wave_rir)
