@@ -22,11 +22,15 @@ from calibration import low_pass_filter
 # Load data
 # ============================================================
 
-geo_data_pos1 = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos1\rir_shoebox_pos1_200000_withphase_ismspec.npz")
+geo_data_pos1 = np.load(r"C:\Masters\Hybrid\hybridsim\shoebox\results\pos1\rir_shoebox_pos1_200000_withphase_ismspec.npz")
 
 geo_left = geo_data_pos1["brir_l"]
 geo_right = geo_data_pos1["brir_r"]
 
+fs, raven_data_pos1 = wavfile.read(
+    r"C:\Masters\Hybrid\hybridsim\shoebox\results\pos1\RAVEN_pos1_RIR.wav"
+)
+"""
 geo_data_pos2 = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos3\rir_shoebox_pos3_200000_vectorized.npz")
 
 geo_data_pos3 = np.load(r"C:\Masters\Hybrid\hybridsim\results\pos3\rir_shoebox_pos3_200000_withphase_ismspec.npz")
@@ -67,14 +71,15 @@ fs, raven_BRIR_pos1 = wavfile.read(
 fs, newraven = wavfile.read(
     r"C:\ITASoftware\Raven\RavenOutput\pepepeidk20260531T222458\ImpulseResponses\2026-05-31\22.24.58\RIR_RT\RIR_RT_PrimarySource0_Receiver0_1_1.wav"
 )
-
-plot_rir(newraven, fs = 44100)
-
+"""
+fs, raven_BRIR_pos1 = wavfile.read(
+    r"C:\Masters\Hybrid\hybridsim\shoebox\results\pos1\RAVEN_pos1_BRIR.wav"
+)
 left_raven = raven_BRIR_pos1[:, 0]
 right_raven = raven_BRIR_pos1[:, 1]
-
 plot_rir(left_raven, fs = 44100)
 plot_rir(right_raven, fs = 44100)
+
 
 print(f"RAVEN mono RIR length  : {len(raven_data_pos1)/fs:.3f}s")
 print(f"RAVEN BRIR length      : {raven_BRIR_pos1.shape[0]/fs:.3f}s")
@@ -82,6 +87,10 @@ print(f"RAVEN BRIR length      : {raven_BRIR_pos1.shape[0]/fs:.3f}s")
 # Extract signals
 rir_total1 = geo_data_pos1["rir_total"]
 rir_bands1 = geo_data_pos1["rir_bands"]
+
+plot_rir(rir_total1, fs = 44100)
+
+plot_rir(raven_data_pos1, fs = 44100)
 
 rir_total2 = geo_data_pos2["rir_total"]
 rir_bands2 = geo_data_pos2["rir_bands"]

@@ -68,34 +68,68 @@ def main():
     TD_DG_sc2_rec2 = TD_DG[1]
     print(TD_DG_sc2_rec2.shape)
 
-    geo_sc1_rec2 = np.load(r"C:\Masters\Hybrid\hybridsim\scenario1\results\rir_scenario1_ism5_200000_S2R2.npz")
+    geo_sc1_rec2 = np.load(r"C:\Masters\Hybrid\hybridsim\scenario1\results\rir_scenario1_ism5_200000_S2R2_wallmat.npz")
+    hybrid = np.load(r"C:\Masters\Hybrid\hybridsim\scenario1\results\hybrid_rir_wallmat.npz")["hybrid_mono"]
 
     rir = geo_sc1_rec2["rir_total"]
     rir_bands = geo_sc1_rec2["rir_bands"]
     td = geo_sc1_rec2["t_d"]
 
     geo_sc1_rt60 = []
+    hybrid_rt60 = []
     hybrid_ref_rt60 = []
     TD_DG_rt60 = []
 
+    geo_EDT = []
+    hybrid_EDT = []
+    hybrid_ref_EDT = []
+    TD_DG_EDT = []
+
+
     for band in rir_bands:
         geo_sc1_rt60.append(compute_rt60_from_rir(band, td = td))
+        geo_EDT.append(compute_edt_from_rir(band))
+
 
     for f in FREQ_BANDS:
-    
+        hybrid_rt60.append(compute_rt60_from_rir(bandpass_rir(hybrid, center_freq=f), td = td, fs = 44100))
         hybrid_ref_rt60.append(compute_rt60_from_rir(bandpass_rir(hybrid_ref_sc2_rec2, center_freq=f), td = td, fs = 44800))
         TD_DG_rt60.append(compute_rt60_from_rir(bandpass_rir(TD_DG_sc2_rec2, center_freq=f), td=td, fs = 44800))
+        #geo_sc1_rt60.append(compute_rt60_from_rir(bandpass_rir(rir, center_freq=f), td=td, fs= 44100))
+        hybrid_EDT.append(compute_edt_from_rir(bandpass_rir(hybrid, center_freq=f)))
+        hybrid_ref_EDT.append(compute_edt_from_rir(bandpass_rir(hybrid_ref_sc2_rec2, center_freq=f), fs = 44800))
+        TD_DG_EDT.append(compute_edt_from_rir(bandpass_rir(TD_DG_sc2_rec2, center_freq=f), fs = 48000))
+                          
 
     print(geo_sc1_rt60)
     print(hybrid_ref_rt60)
     print(TD_DG_rt60)
+    print(hybrid_rt60)
 
     fig, ax = plt.subplots()
-    ax.plot(FREQ_BANDS, geo_sc1_rt60, label = "geo")
-    ax.plot(FREQ_BANDS, hybrid_ref_rt60, label = "hybrid")
-    ax.plot(FREQ_BANDS, TD_DG_rt60, label = "wave")
+    ax.plot(FREQ_BANDS[:6], geo_sc1_rt60[:6], label = "geo")
+    ax.plot(FREQ_BANDS[:6], hybrid_ref_rt60[:6], label = "hybrid ref")
+    ax.plot(FREQ_BANDS[:6], TD_DG_rt60[:6], label = "wave")
+    ax.plot(FREQ_BANDS[:6], hybrid_rt60[:6], label = "real hybrid")
+    ax.set_ylabel("RT60")
+    ax.set_xlabel("frequency")
+    ax.set_title("RT60 Hybrid validation")
     plt.legend()
+    plt.savefig('rt60 hybrid comparison.png', dpi=150)
     plt.show()
+
+    ig, ax = plt.subplots()
+    ax.plot(FREQ_BANDS[:6], geo_EDT[:6], label = "geo")
+    ax.plot(FREQ_BANDS[:6], hybrid_ref_EDT[:6], label = "hybrid ref")
+    ax.plot(FREQ_BANDS[:6], TD_DG_EDT[:6], label = "wave")
+    ax.plot(FREQ_BANDS[:6], hybrid_EDT[:6], label = "real hybrid")
+    ax.set_ylabel("EDT")
+    ax.set_xlabel("frequency")
+    ax.set_title("EDT Hybrid validation")
+    plt.legend()
+    plt.savefig('EDT hybrid comparison.png', dpi=150)
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
