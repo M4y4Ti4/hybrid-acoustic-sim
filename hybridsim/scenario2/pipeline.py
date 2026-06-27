@@ -16,8 +16,8 @@ if ROOT not in sys.path:
 sys.path.append(os.path.join(HYBRID_DIR, "DGsim"))
 sys.path.append(os.path.join(HYBRID_DIR, "RayroomProject"))
 
-from hybridsim.scenario1.geo_wrapper  import run_geometric
-from hybridsim.scenario1.wave_wrapper import run_wave
+from hybridsim.scenario2.geo_wrapper  import run_geometric
+from hybridsim.scenario2.wave_wrapper import run_wave
 from calibration import create_hybrid
 
 def main():
@@ -28,8 +28,8 @@ def main():
     max_freq     = 50
 
     mesh_input = os.path.join(
-        ROOT, "DGsim", "examples", "scenario1", 
-        "oculus_scenario_1_lc05"
+        ROOT, "DGsim", "examples", "scenario2", 
+        "oculus_scenario_2_lc05"
     )
 
     # ── Verify mesh exists ──

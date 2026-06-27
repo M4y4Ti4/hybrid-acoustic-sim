@@ -280,7 +280,7 @@ def evaluate_rt60_per_band(hybrid_rir, fs=44100):
             print(f"{fc:>6} {'N/A':>12}")
 
 def plot_tf(signals: dict, fs=44100, title="Transfer Function", 
-            f_min=20, f_max=800, log_scale=False):
+            f_min=20, f_max=800, crossover = 130, log_scale=False):
     """
     overlay transfer functions for multiple signals on the same axes.
     signals: dict of {label: array}
@@ -293,7 +293,7 @@ def plot_tf(signals: dict, fs=44100, title="Transfer Function",
         mask = (f >= f_min) & (f <= f_max)
         ax.plot(f[mask], mag[mask], label=label)
 
-    ax.axvline(200, color='red', linestyle='--', linewidth=1, label='Crossover (250 Hz)')
+    ax.axvline(crossover, color='red', linestyle='--', linewidth=1, label='Crossover (250 Hz)')
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel("Magnitude (dB)")
     ax.set_xlim(0,800)
@@ -433,101 +433,25 @@ def compute_metrics(label, rir, td, fs=44100):
     return {"rt60": rt60, "edt": edt, "c80": c80, "d50": d50, "ts": ts, "drr": drr}
 
 def main():
-    geo_data = np.load(r"C:\Masters\Hybrid\hybridsim\shoebox\results\pos1\rir_shoebox_pos1_200000_withphase_ismspec.npz")
-    wave_data = np.load(r"C:\Masters\Hybrid\hybridsim\shoebox\results\pos1\shoebox_lc05_freq300_2s_avabs_newcarpet_pos1.mat.npz")
 
-    brir_left = geo_data["brir_l"]
-    brir_right = geo_data["brir_r"]
-    rir_total = geo_data["rir_total"]
-
-    amp_direct = geo_data["amp_direct"]
-    td = geo_data["t_d"]
-    tr = geo_data["t_r"]
-
-    wave_rir = wave_data["IR_resampled"]
-    t_wave = wave_data["t_resampled"]
-    #t_raw = wave_data["t_raw"]
-    #raw_IR = wave_data["raw_IR"]
-
-    
-
-    plot_rir(wave_rir, fs = 44100)
-
-    t_geo = np.linspace(0, 2.0, len(rir_total))
-
-    plot_rir(brir_left, fs = 44100)
-    plot_rir(brir_right, fs = 44100)
-
-    scaled_geo_left = scale_Gir(gd = np.mean(np.abs(np.array(amp_direct))), td = td, rir_total = brir_left)
-    scaled_geo_right = scale_Gir(gd = np.mean(np.abs(np.array(amp_direct))), td = td, rir_total = brir_right)
-    scaled_geo = scale_Gir(gd = np.mean(np.abs(np.array(amp_direct))), td = td, rir_total = rir_total)
-
-    low_pass_geo_left = low_pass_filter(scaled_geo_left, cutoff = 200, fs = 44100)
-    low_pass_geo_right = low_pass_filter(scaled_geo_right, cutoff = 200, fs = 44100)
-    low_pass_geo = low_pass_filter(scaled_geo, cutoff=200, fs = 44100)
-    low_pass_wave = low_pass_filter(wave_rir, cutoff = 200, fs = 44100)
-
-    plot_rir(low_pass_geo, fs = 44100)
-    plot_rir(low_pass_wave, fs = 44100)
-
-    eta_left = integrate_energy(ir_geo = low_pass_geo_left, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = td + 0.03)
-    eta_right = integrate_energy(ir_geo = low_pass_geo_right, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = td + 0.03)
-    eta_av = (eta_left + eta_right) / 2
-    eta = integrate_energy(ir_geo = low_pass_geo, ir_wav=low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end  = td + 0.03)
-    print(eta_left, eta_right, eta_av, eta)
-    #eta = calculate_cal_coef_freqdomain(geo_rir = low_pass_geo, wave_rir = low_pass_wave, f_low = 150, f_high = 230)
-    #eta2 = integrate_energy(ir_geo = low_pass_geo, ir_wav = low_pass_wave, t_wave = t_wave, t_geo = t_geo, t_start = td, t_end = 0.03)
-    #print(f"eta2: {eta2}")
-    wave_calibrated_binaural = wave_rir * eta_av
-    wave_calibrated = wave_rir * eta
-
-    plot_tf({"wave": wave_calibrated_binaural, "geo": scaled_geo_left}, title="left ear")
-    plot_tf({"wave": wave_calibrated_binaural, "geo": scaled_geo_right}, title="right ear")
-    plot_tf({"wave": wave_calibrated, "geo": scaled_geo}, title="mono")
-    #plot_tf({"Geo (raw)": rir_total, "Wave (raw)": wave_rir},
-            #title="Step 1 — Raw transfer functions")
-
-    #metrics_geo_raw  = compute_metrics("Geo (raw)",  rir_total, td)
-    #metrics_wave_raw = compute_metrics("Wave (raw)", wave_rir,  td)
-
-    lowband_left, highband_left = apply_crossover(geo_rir = scaled_geo_left, wave_rir = wave_calibrated, crossover_hz = 200)
-    lowband_right, highband_right = apply_crossover(geo_rir = scaled_geo_right, wave_rir = wave_calibrated, crossover_hz = 200)
-    lowband, highband = apply_crossover(geo_rir=scaled_geo, wave_rir = wave_calibrated, crossover_hz = 200)
-
-    if len(lowband_left) != len(highband_left):
-        new_len = max(len(lowband_left), len(highband_left))
-        print(new_len)
-        lowband_left = np.pad(lowband_left, (0, new_len - len(lowband_left)))
-        highband_left = np.pad(highband_left, (0, new_len - len(highband_left)))
-
-    if len(lowband_right) != len(highband_right):
-        new_len = max(len(lowband_right), len(highband_right))
-        print(new_len)
-        lowband_right = np.pad(lowband_right, (0, new_len - len(lowband_right)))
-        highband_right = np.pad(highband_right, (0, new_len - len(highband_right)))
-
-    if len(lowband) != len(highband):
-        new_len = max(len(lowband), len(highband))
-        print(new_len)
-        lowband = np.pad(lowband, (0, new_len - len(lowband)))
-        highband = np.pad(highband, (0, new_len - len(highband)))
+    hybrid_s2r13 = np.load(r"C:\Masters\Hybrid\hybridsim\scenario1\results\hybrid_sc1_result_pipeline_S2R12")
+    brir_left = hybrid_s2r13["brir_l"]
+    wave_rir = hybrid_s2r13["wave_ir"]
+    brir_right = hybrid_s2r13["brir_r"]
+    rir_total = hybrid_s2r13["rir_total"]
+    rir_g_scaled = hybrid_s2r13["geo_scaled_mono"]
+    t_wave = hybrid_s2r13["t_wave"]
+    wave_calibrated = hybrid_s2r13["wave_calibrated"]
+    eta_left = hybrid_s2r13["eta_left"]
+    td = hybrid_s2r13["td"]
+    tr = hybrid_s2r13["tr"]
+    t_geo = np.linspace(0, 2, len(rir_total))
+    hybrid_mono = hybrid_s2r13["hybrid_mono"]
 
 
-    hybrid_rir_left = lowband_left + highband_left
-    hybrid_rir_right = lowband_right + highband_right
-    hybrid_rir = lowband + highband
+    plot_tf({"wave_calibrated_new": wave_calibrated, "g_scaled": rir_g_scaled}, title = "helpj wtf")
+    plot_tf({"Hybrid": hybrid_mono})
 
-
-    np.savez(r"C:\Masters\Hybrid\hybridsim\scenario1\results\hybrid_BRIR.npz", hybrid_rir_left = hybrid_rir_left, hybrid_rir_right = hybrid_rir_right, hybrid_mono = hybrid_rir)
-
-    plot_tf({"low band": lowband_left, "highband": highband_left, "hybrid": hybrid_rir_left}, title="crossover and hybrid,left ear")
-    plot_tf({"low band": lowband_right, "highband": highband_right, "hybrid": hybrid_rir_right}, title="crossover and hybrid,right ear")
-    plot_tf({"low band": lowband, "highband": highband, "hybrid": hybrid_rir}, title="crossover and hybrid,mono")
-
-    plot_rir(hybrid_rir_left, fs = 44100)
-    plot_rir(hybrid_rir_right, fs = 44100)
-    plot_rir(hybrid_rir, fs = 44100)
-   
 
 if __name__ == "__main__":
     main()

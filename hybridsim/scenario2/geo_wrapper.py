@@ -15,106 +15,103 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 def run_geometric(rec_pos, source_pos, n_rays, max_hops, rir_duration, ism_order):
   
-
     mat_wall   = get_material("wall")
-    carpet = get_material("custom_carpet")
+    mat_carpet = get_material("custom_carpet")
     mat_panel  = get_material("custom_panel")
 
-    h = 3.3
+    h      = 3.3
+    offset = 0.001
 
-    # Floor vertices (z=0)
+    # Floor (z=0)
     P1f = np.array([0.0,     0.0,     0.0])
     P2f = np.array([5.51566, 0.0,     0.0])
     P3f = np.array([6.21333, 4.01907, 0.0])
     P4f = np.array([0.0,     5.09763, 0.0])
 
-    # Ceiling vertices (z=3.3)
+    # Ceiling (z=3.3)
     P1c = np.array([0.0,     0.0,     h])
     P2c = np.array([5.51566, 0.0,     h])
     P3c = np.array([6.21333, 4.01907, h])
     P4c = np.array([0.0,     5.09763, h])
 
-    walls = []
 
-    # Floor (normal pointing up +Z)
-    walls.append(Wall("Floor",   [P1f, P2f, P3f, P4f], carpet))
+    right_dir    = P3f - P2f
+    right_dir    = right_dir / np.linalg.norm(right_dir)
+    right_normal = np.array([-right_dir[1], right_dir[0], 0.0])
 
-    # Ceiling (normal pointing down -Z, reverse order)
-    walls.append(Wall("Ceiling", [P4c, P3c, P2c, P1c], mat_wall))
-
-    # Front wall  (y=0, between P1-P2)
-    walls.append(Wall("Wall_Front", [P1c, P2c, P2f, P1f], mat_wall))
-
-    # Right wall  (between P2-P3)
-    walls.append(Wall("Wall_Right", [P2c, P3c, P3f, P2f], mat_wall))
-
-    # Back wall   (between P3-P4)
-    walls.append(Wall("Wall_Back",  [P3c, P4c, P4f, P3f], mat_wall))
-
-    # Left wall   (x=0, between P4-P1)
-    walls.append(Wall("Wall_Left",  [P4c, P1c, P1f, P4f], mat_wall))
-
-    #creating acoustic panels as wall objects 
-
-    offset = 0.001  # Push panels 1mm into room to avoid coplanar issues
-
-
-    walls.append(Wall("Panel_2", [
-        np.array([3.41566, offset, 2.7]),
-        np.array([4.01566, offset, 2.7]),
-        np.array([4.01566, offset, 0.0]),
-        np.array([3.41566, offset, 0.0]),
-    ], mat_panel))
-
-    walls.append(Wall("Panel_3", [
-        np.array([4.79566, offset, 2.7]),
-        np.array([5.39566, offset, 2.7]),
-        np.array([5.39566, offset, 0.0]),
-        np.array([4.79566, offset, 0.0]),
-    ], mat_panel))
-
-    # ── Back wall panels (P3->P4 wall) ──
-    # Back wall direction vector
-    back_dir = np.array([0.0 - 6.21333, 5.09763 - 4.01907, 0.0])
-    back_dir = back_dir / np.linalg.norm(back_dir)
-    # Inward normal
+    back_dir    = P4f - P3f
+    back_dir    = back_dir / np.linalg.norm(back_dir)
     back_normal = np.array([-back_dir[1], back_dir[0], 0.0])
 
-    walls.append(Wall("Panel_5", [
+    walls = []
+
+
+    # Floor — Scenario 2 has smaller carpet, so floor is hard surface
+    walls.append(Wall("Floor",      [P1f, P2f, P3f, P4f], mat_wall))
+
+    # Ceiling
+    walls.append(Wall("Ceiling",    [P4c, P3c, P2c, P1c], mat_wall))
+
+    # Front wall
+    walls.append(Wall("Wall_Front", [P1c, P2c, P2f, P1f], mat_wall))
+
+    # Right wall
+    walls.append(Wall("Wall_Right", [P2c, P3c, P3f, P2f], mat_wall))
+
+    # Back wall
+    walls.append(Wall("Wall_Back",  [P3c, P4c, P4f, P3f], mat_wall))
+
+    # Left wall
+    walls.append(Wall("Wall_Left",  [P4c, P1c, P1f, P4f], mat_wall))
+
+
+    walls.append(Wall("Panel_3", [
         np.array([5.82908, 4.08577, 2.7]) + offset * back_normal,
         np.array([4.64676, 4.291,   2.7]) + offset * back_normal,
         np.array([4.64676, 4.291,   0.0]) + offset * back_normal,
         np.array([5.82908, 4.08577, 0.0]) + offset * back_normal,
     ], mat_panel))
 
-    walls.append(Wall("Panel_6", [
+    walls.append(Wall("Panel_4", [
         np.array([2.73904, 4.62216, 2.7]) + offset * back_normal,
         np.array([1.55672, 4.8274,  2.7]) + offset * back_normal,
         np.array([1.55672, 4.8274,  0.0]) + offset * back_normal,
         np.array([2.73904, 4.62216, 0.0]) + offset * back_normal,
     ], mat_panel))
 
-    walls.append(Wall("Panel_7", [
-        np.array([1.35967, 4.86161, 2.7]) + offset * back_normal,
-        np.array([0.17735, 5.06684, 2.7]) + offset * back_normal,
-        np.array([0.17735, 5.06684, 0.0]) + offset * back_normal,
-        np.array([1.35967, 4.86161, 0.0]) + offset * back_normal,
-    ], mat_panel))
-
-    # ── Left wall panels (x=0 wall → panels at x=offset, normal +X) ──
-    walls.append(Wall("Panel_8", [
-        np.array([offset, 4.52763, 2.7]),
-        np.array([offset, 3.32763, 2.7]),
-        np.array([offset, 3.32763, 0.0]),
-        np.array([offset, 4.52763, 0.0]),
-    ], mat_panel))
-
-    walls.append(Wall("Panel_9", [
+    walls.append(Wall("Panel_5", [
         np.array([offset, 1.77, 2.7]),
         np.array([offset, 0.57, 2.7]),
         np.array([offset, 0.57, 0.0]),
         np.array([offset, 1.77, 0.0]),
     ], mat_panel))
+
+    walls.append(Wall("Carpet", [
+        np.array([1.90566, 3.84, 0.001]),
+        np.array([1.90566, 0.05, 0.001]),
+        np.array([4.78566, 0.05, 0.001]),
+        np.array([4.78566, 3.84, 0.001]),
+    ], mat_carpet))
+
+    room_center = np.array([3.0, 2.5, 1.65])
+    print("\n=== WALL NORMAL CHECK ===")
+    all_inward = True
+    for wall in walls:
+        v0 = np.array(wall.vertices[0])
+        v1 = np.array(wall.vertices[1])
+        v2 = np.array(wall.vertices[2])
+        normal = np.cross(v1 - v0, v2 - v0)
+        norm_mag = np.linalg.norm(normal)
+        if norm_mag < 1e-10:
+            print(f"{wall.name:15s} ❌ DEGENERATE")
+            continue
+        normal = normal / norm_mag
+        dot    = np.dot(normal, room_center - v0)
+        status = "✅ INWARD" if dot > 0 else "❌ OUTWARD"
+        if dot <= 0:
+            all_inward = False
+        print(f"{wall.name:15s} {status}")
+    print(f"\nAll inward: {'✅' if all_inward else '❌ Fix outward walls!'}")
 
     room = Room(walls=walls, fs=44100)
 
@@ -164,8 +161,7 @@ def run_geometric(rec_pos, source_pos, n_rays, max_hops, rir_duration, ism_order
     t_geo = np.linspace(0, rir_duration, len(rir_total))
 
 
-    MASTERS_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    hrtf_path = os.path.join(MASTERS_DIR, "HRTF", "KEMAR_GRAS_EarSim_LargeEars_FreeFieldCompMinPhase_44kHz.sofa")
+    hrtf_path = r"C:\Masters\HRTF\KEMAR_GRAS_EarSim_LargeEars_FreeFieldCompMinPhase_44kHz.sofa"
     hrtf = load_hrtf(hrtf_path, fs_target=44100)
 
     brir_l, brir_r, brir_bands_l, brir_bands_r = render_brir(
